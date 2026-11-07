@@ -16,12 +16,11 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"examples/react-consumer/**/*.{ts,tsx,css,html,json}\" \"scripts/**/*.mjs\" \"README.md\"",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"scripts/**/*.mjs\" \"README.md\"",
     "web:dev": "vite --config web/vite.config.ts",
     "web:check": "tsc -p web/tsconfig.json --noEmit",
     "web:build": "npm run web:check && vite build --config web/vite.config.ts",
     "web:verify": "node scripts/verify-web.mjs",
-    "package:verify": "node scripts/verify-package.mjs",
     "prepack": "npm run build"
   },
   "engines": {
