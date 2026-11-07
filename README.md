@@ -151,6 +151,10 @@ auditoria automatizada com axe-core.
 npm test
 ```
 
+Antes da suíte, o FormGen gera uma fixture React temporária a partir da DSL. O teste gerado
+é executado com Testing Library, jsdom e jest-axe no estado inicial e após a validação,
+além de verificar o foco no primeiro campo inválido.
+
 ## Estrutura do projeto
 
 ```text

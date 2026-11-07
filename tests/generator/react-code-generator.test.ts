@@ -86,6 +86,18 @@ describe('Gerador React via AST', () => {
     expect(generateReactArtifacts(definition)).toEqual(generateReactArtifacts(definition));
   });
 
+  it('gera teste executável para os estados inicial, inválido e de foco', () => {
+    const test = generateReactArtifacts(parseForm(source)).find((artifact) =>
+      artifact.fileName.endsWith('.test.tsx'),
+    );
+
+    expect(test?.content).toContain('@vitest-environment jsdom');
+    expect(test?.content).toContain("fireEvent.submit(container.querySelector('form')!)");
+    expect(test?.content).toContain('container.querySelector(\'[role="alert"]\')');
+    expect(test?.content).toContain('expect(document.activeElement).toBe(firstInvalidField)');
+    expect(test?.content).toContain('expect(results.violations).toEqual([])');
+  });
+
   it('gera arquivos com sintaxe TypeScript e TSX válida', () => {
     const artifacts = generateReactArtifacts(parseForm(source));
 

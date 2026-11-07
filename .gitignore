@@ -3,4 +3,5 @@ dist/
 dist-web/
 coverage/
 .vscode/
+tests/generated-a11y/
 examples/react-consumer/src/generated/

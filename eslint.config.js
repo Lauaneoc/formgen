@@ -36,7 +36,11 @@ export default [
     },
   },
   {
-    files: ['web/**/*.{ts,tsx}', 'examples/react-consumer/src/**/*.{ts,tsx}'],
+    files: [
+      'web/**/*.{ts,tsx}',
+      'tests/generated-a11y/**/*.{ts,tsx}',
+      'examples/react-consumer/src/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       globals: {
         Blob: 'readonly',
@@ -55,7 +59,7 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.{ts,mjs}'],
     languageOptions: {
       globals: {
         console: 'readonly',

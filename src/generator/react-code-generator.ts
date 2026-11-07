@@ -560,12 +560,12 @@ function generateAccessibilityTest(project: Project, names: GeneratorNames): Gen
   const file = project.createSourceFile(fileName);
   file.addImportDeclaration({
     moduleSpecifier: '@testing-library/react',
-    namedImports: ['render'],
+    namedImports: ['fireEvent', 'render', 'waitFor'],
   });
   file.addImportDeclaration({ moduleSpecifier: 'jest-axe', namedImports: ['axe'] });
   file.addImportDeclaration({
     moduleSpecifier: 'vitest',
-    namedImports: ['describe', 'expect', 'it', 'vi'],
+    namedImports: ['afterEach', 'beforeEach', 'describe', 'expect', 'it', 'vi'],
   });
   file.addImportDeclaration({
     moduleSpecifier: `./${names.componentName}`,
@@ -574,7 +574,15 @@ function generateAccessibilityTest(project: Project, names: GeneratorNames): Gen
   file.addStatements((writer) => {
     writer.writeLine(`describe('${names.componentName}', () => {`);
     writer.indent(() => {
-      writer.writeLine("it('não possui violações automáticas de acessibilidade', async () => {");
+      writer.writeLine('beforeEach(() => {');
+      writer.indent(() => {
+        writer.writeLine(
+          "vi.stubGlobal('requestAnimationFrame', (callback: () => void) => { callback(); return 0; });",
+        );
+      });
+      writer.writeLine('});');
+      writer.writeLine('afterEach(() => vi.unstubAllGlobals());').blankLine();
+      writer.writeLine("it('não possui violações automáticas no estado inicial', async () => {");
       writer.indent(() => {
         writer.writeLine(
           `const { container } = render(<${names.componentName} onSubmit={vi.fn()} />);`,
@@ -582,10 +590,43 @@ function generateAccessibilityTest(project: Project, names: GeneratorNames): Gen
         writer.writeLine('const results = await axe(container);');
         writer.writeLine('expect(results.violations).toEqual([]);');
       });
+      writer.writeLine('});').blankLine();
+      writer.writeLine(
+        "it('não possui violações automáticas depois de exibir erros', async () => {",
+      );
+      writer.indent(() => {
+        writer.writeLine(
+          `const { container } = render(<${names.componentName} onSubmit={vi.fn()} />);`,
+        );
+        writer.writeLine("fireEvent.submit(container.querySelector('form')!);");
+        writer.writeLine(
+          'await waitFor(() => expect(container.querySelector(\'[role="alert"]\')).not.toBeNull());',
+        );
+        writer.writeLine('const results = await axe(container);');
+        writer.writeLine('expect(results.violations).toEqual([]);');
+      });
+      writer.writeLine('});').blankLine();
+      writer.writeLine("it('move o foco para o primeiro campo inválido', async () => {");
+      writer.indent(() => {
+        writer.writeLine(
+          `const { container } = render(<${names.componentName} onSubmit={vi.fn()} />);`,
+        );
+        writer.writeLine("fireEvent.submit(container.querySelector('form')!);");
+        writer.writeLine('await waitFor(() => {');
+        writer.indent(() => {
+          writer.writeLine(
+            'const firstInvalidField = container.querySelector<HTMLElement>(\'[aria-invalid="true"]\');',
+          );
+          writer.writeLine('expect(firstInvalidField).not.toBeNull();');
+          writer.writeLine('expect(document.activeElement).toBe(firstInvalidField);');
+        });
+        writer.writeLine('});');
+      });
       writer.writeLine('});');
     });
     writer.writeLine('});');
   });
+  file.insertText(0, '/** @vitest-environment jsdom */\n');
   return { fileName, content: print(file), category: 'test' };
 }
 
