@@ -524,14 +524,53 @@ export function ErrorSummary({ titleId, title, children, className, ...summaryPr
   });
 }
 
-function generateStory(project: Project, names: GeneratorNames): GeneratedArtifact {
+function storyValue(field: FormField): string {
+  if (field.domainType === 'email') return 'pessoa@example.com';
+  if (field.domainType === 'senha') return 'SenhaSegura123!';
+  if (field.domainType === 'numero') return String(field.min ?? 18);
+  if (field.domainType === 'data') return '2026-01-15';
+  if (field.domainType === 'telefone') return '11999999999';
+  if (field.domainType === 'cpf') return '12345678901';
+  if (field.domainType === 'cnpj') return '12345678000199';
+
+  const minimumLength = Math.max(field.minLength ?? 0, 3);
+  return 'Exemplo'.padEnd(minimumLength, ' válido');
+}
+
+function writeFilledStory(
+  writer: import('ts-morph').CodeBlockWriter,
+  definition: FormDefinition,
+): void {
+  writer.writeLine('play: async ({ canvas, userEvent }) => {');
+  writer.indent(() => {
+    definition.fields.forEach((field) => {
+      const query = `canvas.getByLabelText(${stringLiteral(field.label)}, { exact: false })`;
+      if (field.domainType === 'checkbox') {
+        writer.writeLine(`await userEvent.click(${query});`);
+      } else if (field.domainType === 'selecao') {
+        const value = field.options?.[0] ?? '';
+        writer.writeLine(`await userEvent.selectOptions(${query}, ${stringLiteral(value)});`);
+      } else {
+        writer.writeLine(`await userEvent.type(${query}, ${stringLiteral(storyValue(field))});`);
+      }
+    });
+  });
+  writer.writeLine('},');
+}
+
+function generateStory(
+  project: Project,
+  definition: FormDefinition,
+  names: GeneratorNames,
+): GeneratedArtifact {
   const fileName = `${names.componentName}.stories.tsx`;
   const file = project.createSourceFile(fileName);
   file.addImportDeclaration({
     isTypeOnly: true,
-    moduleSpecifier: '@storybook/react',
+    moduleSpecifier: '@storybook/react-vite',
     namedImports: ['Meta', 'StoryObj'],
   });
+  file.addImportDeclaration({ moduleSpecifier: 'storybook/test', namedImports: ['fn'] });
   file.addImportDeclaration({
     moduleSpecifier: `./${names.componentName}`,
     namedImports: [names.componentName],
@@ -541,7 +580,7 @@ function generateStory(project: Project, names: GeneratorNames): GeneratedArtifa
     declarations: [
       {
         name: 'meta',
-        initializer: `{ title: 'Formulários/${names.componentName}', component: ${names.componentName}, args: { onSubmit: (data) => console.log(data) } } satisfies Meta<typeof ${names.componentName}>`,
+        initializer: `{ title: 'Formulários/${names.componentName}', component: ${names.componentName}, args: { onSubmit: fn() }, parameters: { a11y: { test: 'error' } } } satisfies Meta<typeof ${names.componentName}>`,
       },
     ],
   });
@@ -552,6 +591,34 @@ function generateStory(project: Project, names: GeneratorNames): GeneratedArtifa
     declarationKind: VariableDeclarationKind.Const,
     declarations: [{ name: 'Vazio', type: 'Story', initializer: '{}' }],
   });
+  file.addVariableStatement({
+    isExported: true,
+    declarationKind: VariableDeclarationKind.Const,
+    declarations: [
+      {
+        name: 'Preenchido',
+        type: 'Story',
+        initializer: (writer) => {
+          writer.writeLine('{');
+          writer.indent(() => writeFilledStory(writer, definition));
+          writer.write('}');
+        },
+      },
+    ],
+  });
+  if (definition.fields.some((field) => field.required)) {
+    file.addVariableStatement({
+      isExported: true,
+      declarationKind: VariableDeclarationKind.Const,
+      declarations: [
+        {
+          name: 'ComErros',
+          type: 'Story',
+          initializer: `{ play: async ({ canvas, userEvent }) => { await userEvent.click(canvas.getByRole('button', { name: ${stringLiteral(definition.submitButton.text)} })); await canvas.findByRole('alert'); } }`,
+        },
+      ],
+    });
+  }
   return { fileName, content: print(file), category: 'storybook' };
 }
 
@@ -638,7 +705,7 @@ export function generateReactArtifacts(definition: FormDefinition): GeneratedArt
     generateComponent(project, definition, names),
     generateHook(project, definition, names),
     ...generateUiComponents(project),
-    generateStory(project, names),
+    generateStory(project, definition, names),
     generateAccessibilityTest(project, names),
   ];
 }

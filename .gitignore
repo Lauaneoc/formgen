@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-web/
+storybook-static/
 coverage/
 .vscode/
 tests/generated-a11y/

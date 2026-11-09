@@ -98,6 +98,19 @@ describe('Gerador React via AST', () => {
     expect(test?.content).toContain('expect(results.violations).toEqual([])');
   });
 
+  it('gera histórias vazia, preenchida e com erros para o Storybook', () => {
+    const story = generateReactArtifacts(parseForm(source)).find((artifact) =>
+      artifact.fileName.endsWith('.stories.tsx'),
+    );
+
+    expect(story?.content).toContain("from '@storybook/react-vite'");
+    expect(story?.content).toContain("from 'storybook/test'");
+    expect(story?.content).toContain('export const Vazio: Story');
+    expect(story?.content).toContain('export const Preenchido: Story');
+    expect(story?.content).toContain('export const ComErros: Story');
+    expect(story?.content).toContain("a11y: { test: 'error' }");
+  });
+
   it('gera arquivos com sintaxe TypeScript e TSX válida', () => {
     const artifacts = generateReactArtifacts(parseForm(source));
 

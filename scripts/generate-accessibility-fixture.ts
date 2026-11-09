@@ -30,7 +30,10 @@ botao {
 }`;
 
 const artifacts = generateReactArtifacts(parseForm(source)).filter(
-  (artifact) => artifact.category === 'runtime' || artifact.category === 'test',
+  (artifact) =>
+    artifact.category === 'runtime' ||
+    artifact.category === 'storybook' ||
+    artifact.category === 'test',
 );
 
 writeGeneratedArtifacts(artifacts, outputDirectory, true);

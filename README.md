@@ -155,6 +155,26 @@ Antes da suíte, o FormGen gera uma fixture React temporária a partir da DSL. O
 é executado com Testing Library, jsdom e jest-axe no estado inicial e após a validação,
 além de verificar o foco no primeiro campo inválido.
 
+## Storybook
+
+```bash
+npm run storybook
+```
+
+O FormGen gera histórias para os estados vazio, preenchido e com erros. O Storybook inclui
+o painel oficial de acessibilidade, executa axe-core sobre cada história e permite revisar
+interações, foco, teclado e diferentes dimensões de viewport.
+
+Para validar a versão estática:
+
+```bash
+npm run build-storybook
+```
+
+Com o Storybook em execução na porta 6006, a verificação de navegador pode ser executada
+com `npm run storybook:verify`. Ela abre os três estados, executa axe-core e confere
+preenchimento, mensagens de erro e gerenciamento de foco.
+
 ## Estrutura do projeto
 
 ```text

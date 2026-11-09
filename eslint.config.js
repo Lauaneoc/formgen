@@ -5,7 +5,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['**/dist/**', 'dist-web/**', '**/node_modules/**'],
+    ignores: ['**/dist/**', 'dist-web/**', 'storybook-static/**', '**/node_modules/**'],
   },
   js.configs.recommended,
   {
@@ -64,7 +64,9 @@ export default [
       globals: {
         console: 'readonly',
         document: 'readonly',
+        fetch: 'readonly',
         URL: 'readonly',
+        URLSearchParams: 'readonly',
         window: 'readonly',
       },
     },
