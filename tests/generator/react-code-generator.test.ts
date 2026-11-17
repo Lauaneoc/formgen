@@ -43,15 +43,27 @@ describe('Gerador React via AST', () => {
     expect(artifacts.map((artifact) => artifact.fileName)).toEqual([
       'CadastroDeClienteForm.tsx',
       'useCadastroDeClienteForm.ts',
-      'components/Input.tsx',
-      'components/Textarea.tsx',
-      'components/Select.tsx',
-      'components/Checkbox.tsx',
-      'components/Button.tsx',
-      'components/ErrorSummary.tsx',
+      'Input.tsx',
+      'Textarea.tsx',
+      'Select.tsx',
+      'Checkbox.tsx',
+      'Button.tsx',
+      'ErrorSummary.tsx',
       'CadastroDeClienteForm.stories.tsx',
       'CadastroDeClienteForm.test.tsx',
     ]);
+  });
+
+  it('usa o caminho configurado para os componentes compartilhados', () => {
+    const artifacts = generateReactArtifacts(parseForm(source), {
+      componentsImportPath: '../components/formgen',
+    });
+    const component = artifacts.find((artifact) => artifact.fileName.endsWith('Form.tsx'));
+
+    expect(component?.content).toContain("import { Input } from '../components/formgen/Input'");
+    expect(artifacts.find((artifact) => artifact.fileName === 'Input.tsx')?.target).toBe(
+      'shared-component',
+    );
   });
 
   it('inclui validação, acessibilidade e gerenciamento de foco', () => {

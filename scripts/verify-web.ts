@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import AxeBuilder from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 import { chromium } from 'playwright-core';
 
 const baseUrl = 'http://127.0.0.1:5173/';
@@ -12,10 +12,53 @@ await mkdir(outputDirectory, { recursive: true });
 const browser = await chromium.launch({ executablePath: edgePath, headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 
+await context.route('**/v1/assistance/suggestions', async (route) => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      suggestions: [
+        {
+          key: 'field.email.placeholder',
+          value: 'nome@exemplo.com',
+          reason: 'Demonstra o formato esperado sem substituir o rótulo',
+        },
+      ],
+    }),
+  });
+});
+
 try {
   const desktop = await context.newPage();
   await desktop.goto(baseUrl, { waitUntil: 'networkidle' });
   await desktop.getByRole('heading', { name: 'Cadastro de Cliente' }).waitFor();
+
+  const downloadPromise = desktop.waitForEvent('download');
+  await desktop.getByRole('button', { name: 'Baixar React' }).click();
+  const download = await downloadPromise;
+  if (download.suggestedFilename() !== 'cadastro-de-cliente-react.zip') {
+    throw new Error(`Nome inesperado para o ZIP: ${download.suggestedFilename()}`);
+  }
+
+  await desktop.getByRole('button', { name: 'Sugerir com IA' }).click();
+  await desktop.getByRole('heading', { name: 'Sugestões da IA' }).waitFor();
+  await desktop.getByText('nome@exemplo.com').waitFor();
+
+  const assistedAccessibility = await new AxeBuilder({ page: desktop }).analyze();
+  if (assistedAccessibility.violations.length > 0) {
+    const summary = assistedAccessibility.violations
+      .map((violation) => `${violation.id}: ${violation.help}`)
+      .join('; ');
+    throw new Error(`Violações de acessibilidade no painel de IA: ${summary}`);
+  }
+
+  await desktop.screenshot({
+    path: path.join(outputDirectory, 'formgen-ai-suggestions.png'),
+    fullPage: true,
+  });
+
+  await desktop.getByRole('button', { name: 'Aplicar selecionadas' }).click();
+  await desktop.locator('.cm-content').getByText('placeholder "nome@exemplo.com"').waitFor();
 
   const accessibility = await new AxeBuilder({ page: desktop }).analyze();
   if (accessibility.violations.length > 0) {
@@ -60,6 +103,8 @@ try {
   await mobile.setViewportSize({ width: 390, height: 844 });
   await mobile.goto(baseUrl, { waitUntil: 'networkidle' });
   await mobile.getByRole('heading', { name: 'Cadastro de Cliente' }).waitFor();
+  await mobile.getByRole('button', { name: 'Sugerir com IA' }).click();
+  await mobile.getByRole('heading', { name: 'Sugestões da IA' }).waitFor();
 
   const mobileOverflow = await mobile.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
@@ -71,7 +116,7 @@ try {
     fullPage: true,
   });
 
-  console.log('Verificação web concluída: desktop, celular, JSON, erros e foco.');
+  console.log('Verificação web concluída: ZIP, IA, desktop, celular, JSON, erros e foco.');
 } finally {
   await context.close();
   await browser.close();

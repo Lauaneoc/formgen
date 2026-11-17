@@ -129,7 +129,8 @@ a:focus-visible {
 }
 
 .example-select,
-.icon-button {
+.icon-button,
+.download-react-button {
   height: 34px;
   color: #f8faf8;
   background: #313d38;
@@ -147,6 +148,22 @@ a:focus-visible {
   display: inline-grid;
   place-items: center;
   padding: 0;
+}
+
+.download-react-button {
+  min-width: 124px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.download-react-button:hover:not(:disabled) {
+  background: #43524c;
 }
 
 .icon-button:hover:not(:disabled) {
@@ -204,6 +221,34 @@ a:focus-visible {
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.editor-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ai-button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 9px;
+  color: #563812;
+  background: #fff4dc;
+  border: 1px solid #d7a04f;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ai-button:hover:not(:disabled) {
+  background: #ffe8b8;
 }
 
 .editor-surface {
@@ -265,6 +310,137 @@ a:focus-visible {
 .diagnostic--error {
   color: #8a2f28;
   background: #fff2f0;
+}
+
+.ai-panel {
+  max-height: 320px;
+  overflow: auto;
+  color: #332a20;
+  background: #fffdf8;
+  border-top: 1px solid #decba9;
+}
+
+.ai-panel-header,
+.ai-panel-footer {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+}
+
+.ai-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff8e8;
+  border-bottom: 1px solid #ead9b9;
+}
+
+.ai-panel-header > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ai-panel-header h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.panel-close-button {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  color: #594c3c;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+
+.panel-close-button:hover {
+  background: #f2dfb9;
+}
+
+.ai-panel-error,
+.ai-panel-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ai-panel-error {
+  color: #8a2f28;
+}
+
+.ai-suggestion-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-suggestion-list li {
+  border-bottom: 1px solid #eee3d0;
+}
+
+.ai-suggestion-list label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px 13px;
+  cursor: pointer;
+}
+
+.ai-suggestion-list input {
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  accent-color: #176b58;
+}
+
+.ai-suggestion-list label > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.ai-suggestion-list strong {
+  font-size: 12px;
+}
+
+.ai-suggestion-list span span {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ai-suggestion-list small {
+  color: #736757;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ai-panel-footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff8e8;
+  border-top: 1px solid #ead9b9;
+  font-size: 11px;
+}
+
+.ai-panel-footer button {
+  min-height: 30px;
+  padding: 5px 10px;
+  color: #ffffff;
+  background: #176b58;
+  border: 1px solid #105443;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .output-toolbar {
@@ -595,5 +771,28 @@ a:focus-visible {
 
   .form-heading h1 {
     font-size: 21px;
+  }
+
+  .file-name {
+    display: none;
+  }
+
+  .ai-button {
+    max-width: 150px;
+  }
+
+  .download-react-button {
+    min-width: 34px;
+    width: 34px;
+    padding: 0;
+  }
+
+  .download-react-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }

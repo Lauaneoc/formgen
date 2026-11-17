@@ -14,6 +14,8 @@ Nesta primeira versão, o projeto implementa:
 - geração de um JSON intermediário;
 - geração estática de formulários e componentes React via TypeScript AST;
 - editor web da DSL com validação e pré-visualização em tempo real;
+- assistência de IA para sugerir descrições, textos de ajuda e placeholders ausentes;
+- download em ZIP dos componentes React prontos para uso;
 - CLI com os comandos compile, validate e generate.
 
 ## Tecnologias
@@ -38,18 +40,20 @@ npm install
 
 ### Uso em outro projeto React
 
-Enquanto o pacote ainda não estiver publicado no npm, gere o pacote local:
+Instale o FormGen como dependência de desenvolvimento:
+
+```bash
+npm install --save-dev @lauanedev/formgen
+npm install react-hook-form @hookform/resolvers zod
+npm install --save-dev tailwindcss @tailwindcss/vite
+```
+
+Enquanto o pacote ainda não estiver publicado, também é possível gerar e instalar o pacote
+local:
 
 ```bash
 npm pack
-```
-
-No projeto React que utilizará o formulário:
-
-```bash
-npm install --save-dev caminho/para/formgen-0.1.0.tgz
-npm install react-hook-form @hookform/resolvers zod
-npm install --save-dev tailwindcss @tailwindcss/vite
+npm install --save-dev caminho/para/lauanedev-formgen-0.1.0.tgz
 ```
 
 Crie um arquivo `.form` e execute:
@@ -58,11 +62,38 @@ Crie um arquivo `.form` e execute:
 npx formgen generate forms/cadastro.form --output src/generated --runtime-only
 ```
 
+Opcionalmente, `--assist` consulta a API do FormGen, apresenta cada sugestão no terminal e usa apenas
+as sugestões aprovadas para gerar o React. A DSL original não é alterada e nenhum arquivo
+`.assistido.form` é necessário. Para indicar outra API:
+
+```bash
+npx formgen generate forms/cadastro.form --assist \
+  --api-url https://api.formgen.exemplo \
+  --output src/generated
+```
+
+Em automações sem terminal interativo, use `--accept-all`. A URL também pode ser definida
+pela variável `FORMGEN_API_URL`.
+
 O modo `--runtime-only` gera o componente TSX, o hook de validação e os componentes
 acessíveis estilizados com classes Tailwind. Nenhum arquivo CSS específico do formulário
 é gerado. O projeto consumidor precisa carregar o Tailwind, por exemplo com
 `@import "tailwindcss";` em seu CSS global.
 Sem essa opção, também são gerados a história do Storybook e o teste com jest-axe.
+
+O formulário e o hook são gravados no diretório informado em `--output`. Os componentes
+acessíveis compartilhados são instalados em `src/components/formgen`. Se o projeto usar
+`src/componentes`, o FormGen reconhece essa pasta. Para escolher outro local:
+
+```bash
+npx formgen generate forms/cadastro.form \
+  --output src/forms \
+  --components-output src/ui/formgen \
+  --runtime-only
+```
+
+Componentes compartilhados idênticos são reutilizados. Se um desses arquivos tiver sido
+modificado, o FormGen não o sobrescreve sem a opção explícita `--force`.
 
 ## Execução
 
@@ -72,12 +103,58 @@ npm run dev -- compile caminho/arquivo.form
 
 ### Interface web
 
+Crie um arquivo `.env` na raiz, sem enviá-lo ao Git, e configure:
+
+```text
+OPENAI_API_KEY=sua-chave
+OPENAI_MODEL=seu-modelo
+FORMGEN_AI_REQUESTS_PER_HOUR=10
+```
+
+A chave é lida apenas pelo servidor. Ela não é incluída no JavaScript enviado ao navegador
+nem no pacote npm.
+
 ```bash
 npm run web:dev
 ```
 
 A interface fica disponível em `http://127.0.0.1:5173/` e oferece prévia responsiva,
-visualização do JSON, exemplos e download da representação intermediária.
+visualização do JSON, exemplos, revisão das sugestões da IA e download dos arquivos React
+em ZIP. O ZIP inclui os arquivos de produção, a DSL utilizada e instruções de instalação.
+
+A IA só pode preencher lacunas identificadas pelo FormGen. Campos, rótulos, tipos,
+obrigatoriedade e regras de validação não podem ser alterados pela resposta do modelo.
+
+### API
+
+Durante o desenvolvimento da interface, o Vite disponibiliza o mesmo contrato da API em
+`/v1/assistance/suggestions`. Para executar a API independente:
+
+```bash
+npm run api:dev
+```
+
+Ela fica disponível em `http://127.0.0.1:8787/`. Os endpoints iniciais são:
+
+```text
+GET  /health
+POST /v1/assistance/suggestions
+POST /v1/generation/react
+```
+
+Para compilar e executar a versão de produção:
+
+```bash
+npm run api:build
+npm run api:start
+```
+
+Em uma hospedagem Node.js, use `npm run api:build` como comando de build e `npm start`
+como comando de inicialização. A API também reconhece as variáveis padrão `HOST` e `PORT`
+fornecidas pela plataforma.
+
+Quando a interface e a API estiverem em endereços diferentes, configure
+`VITE_FORMGEN_API_URL` no build web e autorize a origem em `FORMGEN_ALLOWED_ORIGINS`.
 
 ## Sintaxe da DSL
 
@@ -129,9 +206,15 @@ formgen compile arquivo.form
 formgen compile arquivo.form --output resultado.json
 formgen validate arquivo.form
 formgen generate arquivo.form --output generated
+formgen generate arquivo.form --assist --output generated
+formgen generate arquivo.form --assist --accept-all --output generated
+formgen generate arquivo.form --output src/forms --components-output src/ui/formgen
 formgen generate arquivo.form --output generated --runtime-only
 formgen generate arquivo.form --output generated --force
 ```
+
+O comando `assist` continua disponível para quem quiser salvar uma DSL revisada em um
+arquivo separado, mas ele não faz parte do fluxo principal de geração.
 
 ## Verificação da interface
 
@@ -149,6 +232,7 @@ auditoria automatizada com axe-core.
 
 ```bash
 npm test
+npm run scripts:check
 ```
 
 Antes da suíte, o FormGen gera uma fixture React temporária a partir da DSL. O teste gerado
@@ -179,6 +263,7 @@ preenchimento, mensagens de erro e gerenciamento de foco.
 
 ```text
 src/
+  ai/
   cli/
   lexer/
   parser/
@@ -189,18 +274,18 @@ src/
   utils/
 tests/
 web/
+server/
 ```
 
 ## Limitações atuais
 
 - os artefatos gerados precisam ser executados em um projeto React configurado;
 - alterações fora das zonas seguras podem ser substituídas ao usar `--force`;
-- o pacote ainda é privado e não foi publicado no npm;
-- não há integração com APIs.
+- a assistência de IA requer uma chave da OpenAI e um modelo configurado;
+- o limite por IP é mantido em memória e deve migrar para armazenamento compartilhado ao
+  executar mais de uma instância da API.
 
 ## Próximos passos
 
-- download dos arquivos React em `.zip` pela interface;
-- publicação do pacote no npm;
-- assistência de IA com guardrails;
+- publicação da API e da interface web;
 - avaliação comparativa e auditoria com Lighthouse.

@@ -15,7 +15,12 @@ function temporaryDirectory(): string {
 }
 
 function artifact(content: string) {
-  return { fileName: 'Form.tsx', content, category: 'runtime' as const };
+  return {
+    fileName: 'Form.tsx',
+    content,
+    category: 'runtime' as const,
+    target: 'form' as const,
+  };
 }
 
 afterEach(() => {
@@ -64,5 +69,35 @@ describe('Gravação de artefatos com zonas seguras', () => {
       writeGeneratedArtifacts([artifact('novo arquivo sem zona\n')], directory, true),
     ).toThrow('não existe mais no conteúdo gerado');
     expect(readFileSync(target, 'utf8')).toBe(original);
+  });
+
+  it('reutiliza um componente compartilhado quando o conteúdo é idêntico', () => {
+    const directory = temporaryDirectory();
+    const target = path.join(directory, 'Input.tsx');
+    const shared = {
+      ...artifact('componente compartilhado\n'),
+      fileName: 'Input.tsx',
+      target: 'shared-component' as const,
+    };
+    writeFileSync(target, shared.content, 'utf8');
+
+    expect(() => writeGeneratedArtifacts([shared], directory, false, true)).not.toThrow();
+    expect(readFileSync(target, 'utf8')).toBe(shared.content);
+  });
+
+  it('protege um componente compartilhado modificado', () => {
+    const directory = temporaryDirectory();
+    const target = path.join(directory, 'Input.tsx');
+    const shared = {
+      ...artifact('versão do FormGen\n'),
+      fileName: 'Input.tsx',
+      target: 'shared-component' as const,
+    };
+    writeFileSync(target, 'personalização da pessoa\n', 'utf8');
+
+    expect(() => writeGeneratedArtifacts([shared], directory, false, true)).toThrow(
+      'nao sera sobrescrito',
+    );
+    expect(readFileSync(target, 'utf8')).toBe('personalização da pessoa\n');
   });
 });

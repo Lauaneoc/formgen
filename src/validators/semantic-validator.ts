@@ -9,11 +9,15 @@ import {
 import { type FormField, type FormDefinition } from '../schema/form-schema.js';
 
 export function validateFormDefinition(definition: FormDefinition): void {
+  if (!definition.name.trim()) {
+    throw new FormSemanticError('O formulário deve possuir um nome.');
+  }
+
   if (definition.fields.length === 0) {
     throw new FormSemanticError('O formulário deve conter pelo menos um campo.');
   }
 
-  if (!definition.submitButton?.text) {
+  if (!definition.submitButton?.text.trim()) {
     throw new FormSemanticError('O formulário deve conter um botão de envio.');
   }
 
@@ -28,6 +32,9 @@ export function validateFormDefinition(definition: FormDefinition): void {
     seenIds.add(field.id);
 
     validateIdentifier(field.id);
+    if (!field.label.trim()) {
+      throw new FormSemanticError(`O campo "${field.id}" deve possuir um rótulo.`);
+    }
     validateFieldCompatibility(field);
   }
 }

@@ -36,4 +36,13 @@ const artifacts = generateReactArtifacts(parseForm(source)).filter(
     artifact.category === 'test',
 );
 
-writeGeneratedArtifacts(artifacts, outputDirectory, true);
+writeGeneratedArtifacts(
+  artifacts.filter((artifact) => artifact.target === 'form'),
+  outputDirectory,
+  true,
+);
+writeGeneratedArtifacts(
+  artifacts.filter((artifact) => artifact.target === 'shared-component'),
+  path.join(outputDirectory, 'components'),
+  true,
+);

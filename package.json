@@ -1,12 +1,32 @@
 {
-  "name": "formgen",
+  "name": "@lauanedev/formgen",
   "version": "0.1.0",
-  "private": true,
   "description": "Gerador de formulários React acessíveis a partir de uma mini-DSL em português",
+  "keywords": [
+    "accessibility",
+    "forms",
+    "react",
+    "typescript",
+    "wcag",
+    "code-generator",
+    "dsl",
+    "tailwindcss"
+  ],
+  "author": "Lauane Oliveira Da Cunha",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lauaneoc/formgen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Lauaneoc/formgen/issues"
+  },
+  "homepage": "https://github.com/Lauaneoc/formgen#readme",
   "type": "module",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "formgen": "dist/cli/index.js"
@@ -14,26 +34,37 @@
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "build": "tsc -p tsconfig.json",
+    "api:dev": "tsx watch server/index.ts",
+    "api:build": "tsc -p server/tsconfig.json",
+    "api:start": "node dist-server/server/index.js",
+    "start": "npm run api:start",
     "pretest": "tsx scripts/generate-accessibility-fixture.ts",
     "test": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.{ts,tsx}\" \"web/**/*.{ts,tsx,css,html}\" \"scripts/**/*.{ts,mjs}\" \"*.config.{js,ts}\" \"README.md\"",
+    "format": "prettier --write \"src/**/*.ts\" \"server/**/*.ts\" \"tests/**/*.{ts,tsx}\" \"web/**/*.{ts,tsx,css,html}\" \"scripts/**/*.ts\" \"*.config.{js,ts}\" \"README.md\"",
     "web:dev": "vite --config web/vite.config.ts",
     "web:check": "tsc -p web/tsconfig.json --noEmit",
     "web:build": "npm run web:check && vite build --config web/vite.config.ts",
-    "web:verify": "node scripts/verify-web.mjs",
+    "web:verify": "tsx scripts/verify-web.ts",
+    "package:verify": "tsx scripts/verify-package.ts",
     "prestorybook": "tsx scripts/generate-accessibility-fixture.ts",
     "storybook": "storybook dev -p 6006",
     "prebuild-storybook": "tsx scripts/generate-accessibility-fixture.ts",
     "build-storybook": "storybook build -o storybook-static",
-    "storybook:verify": "node scripts/verify-storybook.mjs",
+    "storybook:verify": "tsx scripts/verify-storybook.ts",
+    "scripts:check": "tsc -p scripts/tsconfig.json",
+    "prepublishOnly": "npm run lint && npm test && npm run scripts:check",
     "prepack": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "commander": "^12.1.0",
+    "jszip": "^3.10.2",
     "ts-morph": "^28.0.0",
     "zod": "^3.23.0"
   },
@@ -56,6 +87,7 @@
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.0.0",
     "jest-axe": "^11.0.0",
+    "jiti": "^2.7.0",
     "jsdom": "^29.1.1",
     "lucide-react": "^1.48.0",
     "playwright-core": "^1.63.0",

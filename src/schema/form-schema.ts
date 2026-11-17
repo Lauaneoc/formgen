@@ -3,7 +3,7 @@ import { allowedFieldTypes } from './field-types.js';
 
 export const fieldSchema = z.object({
   id: z.string(),
-  label: z.string(),
+  label: z.string().trim().min(1),
   domainType: z.enum(allowedFieldTypes),
   htmlType: z.string(),
   required: z.boolean(),
@@ -18,11 +18,11 @@ export const fieldSchema = z.object({
 });
 
 export const formSchema = z.object({
-  name: z.string(),
+  name: z.string().trim().min(1),
   description: z.string().optional(),
   fields: z.array(fieldSchema).min(1),
   submitButton: z.object({
-    text: z.string(),
+    text: z.string().trim().min(1),
   }),
 });
 

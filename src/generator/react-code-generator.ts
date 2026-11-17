@@ -11,6 +11,11 @@ export interface GeneratedArtifact {
   fileName: string;
   content: string;
   category: 'runtime' | 'storybook' | 'test';
+  target: 'form' | 'shared-component';
+}
+
+export interface GenerateReactArtifactsOptions {
+  componentsImportPath?: string;
 }
 
 interface GeneratorNames {
@@ -201,7 +206,7 @@ function generateHook(
     },
   });
 
-  return { fileName, content: print(file), category: 'runtime' };
+  return { fileName, content: print(file), category: 'runtime', target: 'form' };
 }
 
 function describedBy(field: FormField): string {
@@ -262,6 +267,7 @@ function generateComponent(
   project: Project,
   definition: FormDefinition,
   names: GeneratorNames,
+  componentsImportPath: string,
 ): GeneratedArtifact {
   const fileName = `${names.componentName}.tsx`;
   const file = project.createSourceFile(fileName);
@@ -285,26 +291,35 @@ function generateComponent(
       (field) => !['textarea', 'selecao', 'checkbox'].includes(field.domainType),
     )
   ) {
-    file.addImportDeclaration({ moduleSpecifier: './components/Input', namedImports: ['Input'] });
+    file.addImportDeclaration({
+      moduleSpecifier: `${componentsImportPath}/Input`,
+      namedImports: ['Input'],
+    });
   }
   if (definition.fields.some((field) => field.domainType === 'selecao')) {
-    file.addImportDeclaration({ moduleSpecifier: './components/Select', namedImports: ['Select'] });
+    file.addImportDeclaration({
+      moduleSpecifier: `${componentsImportPath}/Select`,
+      namedImports: ['Select'],
+    });
   }
   if (definition.fields.some((field) => field.domainType === 'textarea')) {
     file.addImportDeclaration({
-      moduleSpecifier: './components/Textarea',
+      moduleSpecifier: `${componentsImportPath}/Textarea`,
       namedImports: ['Textarea'],
     });
   }
   if (definition.fields.some((field) => field.domainType === 'checkbox')) {
     file.addImportDeclaration({
-      moduleSpecifier: './components/Checkbox',
+      moduleSpecifier: `${componentsImportPath}/Checkbox`,
       namedImports: ['Checkbox'],
     });
   }
-  file.addImportDeclaration({ moduleSpecifier: './components/Button', namedImports: ['Button'] });
   file.addImportDeclaration({
-    moduleSpecifier: './components/ErrorSummary',
+    moduleSpecifier: `${componentsImportPath}/Button`,
+    namedImports: ['Button'],
+  });
+  file.addImportDeclaration({
+    moduleSpecifier: `${componentsImportPath}/ErrorSummary`,
     namedImports: ['ErrorSummary'],
   });
 
@@ -382,7 +397,7 @@ function generateComponent(
     },
   });
 
-  return { fileName, content: print(file), category: 'runtime' };
+  return { fileName, content: print(file), category: 'runtime', target: 'form' };
 }
 
 function generateUiComponents(project: Project): GeneratedArtifact[] {
@@ -520,7 +535,12 @@ export function ErrorSummary({ titleId, title, children, className, ...summaryPr
 
   return components.map(([fileName, content]) => {
     const file = project.createSourceFile(`components/${fileName}`, content);
-    return { fileName: `components/${fileName}`, content: print(file), category: 'runtime' };
+    return {
+      fileName,
+      content: print(file),
+      category: 'runtime',
+      target: 'shared-component',
+    };
   });
 }
 
@@ -619,7 +639,7 @@ function generateStory(
       ],
     });
   }
-  return { fileName, content: print(file), category: 'storybook' };
+  return { fileName, content: print(file), category: 'storybook', target: 'form' };
 }
 
 function generateAccessibilityTest(project: Project, names: GeneratorNames): GeneratedArtifact {
@@ -694,15 +714,19 @@ function generateAccessibilityTest(project: Project, names: GeneratorNames): Gen
     writer.writeLine('});');
   });
   file.insertText(0, '/** @vitest-environment jsdom */\n');
-  return { fileName, content: print(file), category: 'test' };
+  return { fileName, content: print(file), category: 'test', target: 'form' };
 }
 
-export function generateReactArtifacts(definition: FormDefinition): GeneratedArtifact[] {
+export function generateReactArtifacts(
+  definition: FormDefinition,
+  options: GenerateReactArtifactsOptions = {},
+): GeneratedArtifact[] {
   const project = createProject();
   const names = namesFor(definition);
+  const componentsImportPath = options.componentsImportPath ?? './components';
 
   return [
-    generateComponent(project, definition, names),
+    generateComponent(project, definition, names, componentsImportPath),
     generateHook(project, definition, names),
     ...generateUiComponents(project),
     generateStory(project, definition, names),

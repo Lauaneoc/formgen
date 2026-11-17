@@ -94,16 +94,12 @@ export function writeGeneratedArtifacts(
   artifacts: GeneratedArtifact[],
   outputDirectory: string,
   overwrite = false,
+  reuseIdentical = false,
 ): string[] {
   const absoluteDirectory = path.resolve(outputDirectory);
   const targets = artifacts.map((artifact) => path.join(absoluteDirectory, artifact.fileName));
 
-  if (!overwrite) {
-    const existing = targets.find((target) => existsSync(target));
-    if (existing) {
-      throw new Error(`O arquivo gerado já existe: ${existing}. Use --force para substituí-lo.`);
-    }
-  }
+  assertGeneratedArtifactsWritable(artifacts, outputDirectory, overwrite, reuseIdentical);
 
   const contents = artifacts.map((artifact, index) => {
     const target = targets[index];
@@ -113,8 +109,38 @@ export function writeGeneratedArtifacts(
 
   mkdirSync(absoluteDirectory, { recursive: true });
   artifacts.forEach((_artifact, index) => {
+    if (
+      reuseIdentical &&
+      existsSync(targets[index]) &&
+      readFileSync(targets[index], 'utf8') === contents[index]
+    ) {
+      return;
+    }
     mkdirSync(path.dirname(targets[index]), { recursive: true });
     writeFileSync(targets[index], contents[index], 'utf8');
   });
   return targets;
+}
+
+export function assertGeneratedArtifactsWritable(
+  artifacts: GeneratedArtifact[],
+  outputDirectory: string,
+  overwrite = false,
+  reuseIdentical = false,
+): void {
+  if (overwrite) return;
+
+  const absoluteDirectory = path.resolve(outputDirectory);
+  const conflict = artifacts.find((artifact) => {
+    const target = path.join(absoluteDirectory, artifact.fileName);
+    if (!existsSync(target)) return false;
+    return !reuseIdentical || readFileSync(target, 'utf8') !== artifact.content;
+  });
+  if (!conflict) return;
+
+  const target = path.join(absoluteDirectory, conflict.fileName);
+  const detail = reuseIdentical
+    ? 'O componente compartilhado foi modificado e nao sera sobrescrito.'
+    : 'Use --force para substitui-lo.';
+  throw new Error(`O arquivo gerado ja existe: ${target}. ${detail}`);
 }

@@ -1,8 +1,11 @@
 node_modules/
 dist/
 dist-web/
+dist-server/
 storybook-static/
 coverage/
 .vscode/
 tests/generated-a11y/
 examples/react-consumer/src/generated/
+.env
+.env.local

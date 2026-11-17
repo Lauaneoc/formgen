@@ -21,4 +21,11 @@ describe('Validador semântico', () => {
     const definition = parseForm(input);
     expect(() => validateFormDefinition(definition)).toThrow(FormSemanticError);
   });
+
+  it('exige rótulo mesmo quando o campo pode receber placeholder', () => {
+    const input = `formulario "Exemplo"\n\ncampo nome { tipo texto obrigatorio verdadeiro placeholder "Digite seu nome" }\n\nbotao { texto "Enviar" }`;
+    const definition = parseForm(input);
+
+    expect(() => validateFormDefinition(definition)).toThrow('deve possuir um rótulo');
+  });
 });

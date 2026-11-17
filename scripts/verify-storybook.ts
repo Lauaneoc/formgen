@@ -1,5 +1,15 @@
-import AxeBuilder from '@axe-core/playwright';
-import { chromium } from 'playwright-core';
+import { AxeBuilder } from '@axe-core/playwright';
+import { chromium, type FrameLocator, type Page } from 'playwright-core';
+
+interface StorybookIndex {
+  entries: Record<string, { name: string }>;
+}
+
+interface OpenStoryResult {
+  page: Page;
+  canvas: FrameLocator;
+  browserErrors: string[];
+}
 
 const baseUrl = 'http://127.0.0.1:6006/';
 const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -7,11 +17,14 @@ const indexResponse = await fetch(`${baseUrl}index.json`);
 if (!indexResponse.ok) {
   throw new Error(`Não foi possível carregar o índice do Storybook: HTTP ${indexResponse.status}.`);
 }
-const storybookIndex = await indexResponse.json();
-const stories = Object.entries(storybookIndex.entries).reduce((result, [id, entry]) => {
-  result[entry.name] = id;
-  return result;
-}, {});
+const storybookIndex = (await indexResponse.json()) as StorybookIndex;
+const stories = Object.entries(storybookIndex.entries).reduce<Record<string, string>>(
+  (result, [id, entry]) => {
+    result[entry.name] = id;
+    return result;
+  },
+  {},
+);
 
 for (const expectedStory of ['Vazio', 'Preenchido', 'Com Erros']) {
   if (!stories[expectedStory]) {
@@ -22,9 +35,9 @@ for (const expectedStory of ['Vazio', 'Preenchido', 'Com Erros']) {
 const browser = await chromium.launch({ executablePath: edgePath, headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 
-async function openStory(name) {
+async function openStory(name: string): Promise<OpenStoryResult> {
   const page = await context.newPage();
-  const browserErrors = [];
+  const browserErrors: string[] = [];
   page.on('pageerror', (error) => browserErrors.push(error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push(message.text());
@@ -45,7 +58,10 @@ async function openStory(name) {
   return { page, canvas, browserErrors };
 }
 
-async function assertNoAutomaticViolations({ page }, storyName) {
+async function assertNoAutomaticViolations(
+  { page }: OpenStoryResult,
+  storyName: string,
+): Promise<void> {
   const results = await new AxeBuilder({ page })
     .include('#storybook-preview-iframe')
     .disableRules(['region', 'landmark-one-main'])

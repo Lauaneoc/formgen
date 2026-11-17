@@ -5,7 +5,14 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['**/dist/**', 'dist-web/**', 'storybook-static/**', '**/node_modules/**'],
+    ignores: [
+      '**/dist/**',
+      'dist-web/**',
+      'dist-server/**',
+      'storybook-static/**',
+      '**/node_modules/**',
+      '**/*.timestamp-*.mjs',
+    ],
   },
   js.configs.recommended,
   {
@@ -21,10 +28,17 @@ export default [
       },
       globals: {
         console: 'readonly',
+        fetch: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
+        AbortSignal: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
+        Request: 'readonly',
+        RequestInit: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        structuredClone: 'readonly',
       },
     },
     plugins: {
@@ -59,7 +73,7 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.{ts,mjs}'],
+    files: ['scripts/**/*.ts'],
     languageOptions: {
       globals: {
         console: 'readonly',

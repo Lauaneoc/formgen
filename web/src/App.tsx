@@ -4,32 +4,93 @@ import {
   CheckCircle2,
   Code2,
   Download,
+  FileArchive,
   FileCode2,
   Monitor,
   RotateCcw,
+  Sparkles,
   Smartphone,
   TriangleAlert,
+  X,
 } from 'lucide-react';
+import {
+  applyAssistanceSuggestions,
+  detectAssistanceGaps,
+  type AssistanceSuggestion,
+} from '../../src/ai/form-assistance.js';
+import { serializeFormDefinition } from '../../src/compiler/serialize-form.js';
+import { requestAiAssistance } from './ai-assistance';
 import { compileDsl } from './compile-dsl';
 import { DslEditor } from './components/DslEditor';
 import { PreviewForm } from './components/PreviewForm';
 import { examples } from './examples';
+import { requestReactArchive } from './react-download';
 
 type ViewMode = 'preview' | 'json';
 type DeviceMode = 'desktop' | 'mobile';
+type AiState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; suggestions: AssistanceSuggestion[] };
 
 export default function App() {
   const [selectedExample, setSelectedExample] = useState(examples[0].id);
   const [source, setSource] = useState(examples[0].source);
   const [view, setView] = useState<ViewMode>('preview');
   const [device, setDevice] = useState<DeviceMode>('desktop');
+  const [aiState, setAiState] = useState<AiState>({ status: 'idle' });
+  const [selectedSuggestionKeys, setSelectedSuggestionKeys] = useState<Set<string>>(new Set());
+  const [isDownloadingReact, setIsDownloadingReact] = useState(false);
   const result = useMemo(() => compileDsl(source), [source]);
+  const assistanceGaps = result.ok ? detectAssistanceGaps(result.definition) : [];
+  const gapsByKey = new Map(assistanceGaps.map((gap) => [gap.key, gap]));
+
+  function updateSource(nextSource: string) {
+    setSource(nextSource);
+    setAiState({ status: 'idle' });
+    setSelectedSuggestionKeys(new Set());
+  }
 
   function loadExample(id: string) {
     const example = examples.find((candidate) => candidate.id === id);
     if (!example) return;
     setSelectedExample(id);
-    setSource(example.source);
+    updateSource(example.source);
+  }
+
+  async function suggestWithAi() {
+    if (!result.ok || assistanceGaps.length === 0) return;
+    setAiState({ status: 'loading' });
+
+    try {
+      const suggestions = await requestAiAssistance(result.definition);
+      setSelectedSuggestionKeys(new Set(suggestions.map((suggestion) => suggestion.key)));
+      setAiState({ status: 'ready', suggestions });
+    } catch (error) {
+      setAiState({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Não foi possível consultar a IA.',
+      });
+    }
+  }
+
+  function toggleSuggestion(key: string) {
+    setSelectedSuggestionKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function applySelectedSuggestions() {
+    if (!result.ok || aiState.status !== 'ready') return;
+    const selected = aiState.suggestions.filter((suggestion) =>
+      selectedSuggestionKeys.has(suggestion.key),
+    );
+    const assisted = applyAssistanceSuggestions(result.definition, selected);
+    updateSource(serializeFormDefinition(assisted));
   }
 
   function downloadJson() {
@@ -43,6 +104,31 @@ export default function App() {
     link.download = `${result.definition.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function downloadReact() {
+    if (!result.ok || isDownloadingReact) return;
+    setIsDownloadingReact(true);
+
+    try {
+      const blob = await requestReactArchive(result.definition);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const slug = result.definition.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      link.href = url;
+      link.download = `${slug || 'formulario'}-react.zip`;
+      link.click();
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (error) {
+      globalThis.alert(error instanceof Error ? error.message : 'Não foi possível gerar o ZIP.');
+    } finally {
+      setIsDownloadingReact(false);
+    }
   }
 
   return (
@@ -101,6 +187,15 @@ export default function App() {
           >
             <Download size={18} />
           </button>
+          <button
+            className="download-react-button"
+            type="button"
+            disabled={!result.ok || isDownloadingReact}
+            onClick={downloadReact}
+          >
+            <FileArchive size={17} aria-hidden="true" />
+            <span>{isDownloadingReact ? 'Gerando ZIP' : 'Baixar React'}</span>
+          </button>
         </div>
       </header>
 
@@ -111,11 +206,82 @@ export default function App() {
               <FileCode2 size={17} aria-hidden="true" />
               <h2 id="editor-title">Especificação</h2>
             </div>
-            <span className="file-name">formulario.form</span>
+            <div className="editor-actions">
+              <span className="file-name">formulario.form</span>
+              <button
+                className="ai-button"
+                type="button"
+                disabled={!result.ok || assistanceGaps.length === 0 || aiState.status === 'loading'}
+                onClick={suggestWithAi}
+              >
+                <Sparkles size={15} aria-hidden="true" />
+                {aiState.status === 'loading' ? 'Analisando' : 'Sugerir com IA'}
+              </button>
+            </div>
           </div>
           <div className="editor-surface">
-            <DslEditor value={source} onChange={setSource} />
+            <DslEditor value={source} onChange={updateSource} />
           </div>
+          {aiState.status !== 'idle' && aiState.status !== 'loading' && (
+            <section className="ai-panel" aria-labelledby="ai-panel-title">
+              <header className="ai-panel-header">
+                <div>
+                  <Sparkles size={16} aria-hidden="true" />
+                  <h3 id="ai-panel-title">Sugestões da IA</h3>
+                </div>
+                <button
+                  className="panel-close-button"
+                  type="button"
+                  title="Fechar sugestões"
+                  aria-label="Fechar sugestões"
+                  onClick={() => setAiState({ status: 'idle' })}
+                >
+                  <X size={17} />
+                </button>
+              </header>
+
+              {aiState.status === 'error' ? (
+                <p className="ai-panel-error" role="alert">
+                  {aiState.message}
+                </p>
+              ) : aiState.suggestions.length === 0 ? (
+                <p className="ai-panel-empty" role="status">
+                  A IA não apresentou sugestões aplicáveis.
+                </p>
+              ) : (
+                <>
+                  <ul className="ai-suggestion-list">
+                    {aiState.suggestions.map((suggestion) => (
+                      <li key={suggestion.key}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={selectedSuggestionKeys.has(suggestion.key)}
+                            onChange={() => toggleSuggestion(suggestion.key)}
+                          />
+                          <span>
+                            <strong>{gapsByKey.get(suggestion.key)?.label}</strong>
+                            <span>{suggestion.value}</span>
+                            <small>{suggestion.reason}</small>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  <footer className="ai-panel-footer">
+                    <span>{selectedSuggestionKeys.size} selecionadas</span>
+                    <button
+                      type="button"
+                      disabled={selectedSuggestionKeys.size === 0}
+                      onClick={applySelectedSuggestions}
+                    >
+                      Aplicar selecionadas
+                    </button>
+                  </footer>
+                </>
+              )}
+            </section>
+          )}
           <div
             className={`diagnostic ${result.ok ? 'diagnostic--valid' : 'diagnostic--error'}`}
             role="status"
