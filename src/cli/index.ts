@@ -5,6 +5,7 @@ import path from 'node:path';
 import { stdin, stdout } from 'node:process';
 import { createInterface } from 'node:readline/promises';
 import { type AssistanceGap, type AssistanceSuggestion } from '../ai/form-assistance.js';
+import { DEFAULT_FORMGEN_API_URL } from '../ai/formgen-api-client.js';
 import { assistFormFile, reviewFormAssistance } from './assist-form.js';
 import { relativeImportPath, resolveComponentsOutput } from './component-paths.js';
 import { Command } from 'commander';
@@ -73,7 +74,7 @@ async function selectSuggestionsInteractively(
 function buildCli(): Command {
   const program = new Command();
 
-  program.name('formgen').description('Compilador de formulários web acessíveis').version('0.1.0');
+  program.name('formgen').description('Compilador de formulários web acessíveis').version('0.1.1');
 
   program
     .command('compile')
@@ -126,7 +127,7 @@ function buildCli(): Command {
     .option(
       '--api-url <url>',
       'Endereco da API do FormGen',
-      process.env.FORMGEN_API_URL ?? 'http://127.0.0.1:8787',
+      process.env.FORMGEN_API_URL ?? DEFAULT_FORMGEN_API_URL,
     )
     .option('--accept-all', 'Aplica todas as sugestoes sem perguntas interativas', false)
     .action(
@@ -172,7 +173,7 @@ function buildCli(): Command {
     .option(
       '--api-url <url>',
       'Endereço da API do FormGen',
-      process.env.FORMGEN_API_URL ?? 'http://127.0.0.1:8787',
+      process.env.FORMGEN_API_URL ?? DEFAULT_FORMGEN_API_URL,
     )
     .option('--accept-all', 'Aplica todas as sugestões sem perguntas interativas', false)
     .action(

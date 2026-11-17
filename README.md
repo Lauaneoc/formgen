@@ -53,7 +53,7 @@ local:
 
 ```bash
 npm pack
-npm install --save-dev caminho/para/lauanedev-formgen-0.1.0.tgz
+npm install --save-dev caminho/para/lauanedev-formgen-0.1.1.tgz
 ```
 
 Crie um arquivo `.form` e execute:
@@ -62,9 +62,11 @@ Crie um arquivo `.form` e execute:
 npx formgen generate forms/cadastro.form --output src/generated --runtime-only
 ```
 
-Opcionalmente, `--assist` consulta a API do FormGen, apresenta cada sugestão no terminal e usa apenas
-as sugestões aprovadas para gerar o React. A DSL original não é alterada e nenhum arquivo
-`.assistido.form` é necessário. Para indicar outra API:
+Opcionalmente, `--assist` consulta a API pública do FormGen em
+`https://formgen-xmg1.onrender.com`, apresenta cada sugestão no terminal e usa apenas as sugestões
+aprovadas para gerar o React. A DSL original não é alterada e nenhum arquivo `.assistido.form` é
+necessário. O serviço gratuito pode levar alguns segundos para despertar após um período sem uso.
+Para indicar outra API:
 
 ```bash
 npx formgen generate forms/cadastro.form --assist \

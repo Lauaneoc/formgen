@@ -1,6 +1,9 @@
 import { validateAssistanceSuggestions, type AssistanceSuggestion } from './form-assistance.js';
 import { type FormDefinition } from '../schema/form-schema.js';
 
+export const DEFAULT_FORMGEN_API_URL = 'https://formgen-xmg1.onrender.com';
+export const DEFAULT_FORMGEN_API_TIMEOUT_MILLISECONDS = 90_000;
+
 interface FormGenApiClientOptions {
   baseUrl: string;
   fetchImplementation?: typeof fetch;
@@ -34,7 +37,9 @@ export async function requestFormAssistance(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ definition }),
-    signal: AbortSignal.timeout(options.timeoutMilliseconds ?? 30_000),
+    signal: AbortSignal.timeout(
+      options.timeoutMilliseconds ?? DEFAULT_FORMGEN_API_TIMEOUT_MILLISECONDS,
+    ),
   });
 
   let body: AssistanceResponse;
